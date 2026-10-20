@@ -1,8 +1,9 @@
+
 package dw.editora.control;
 
+import java.net.URI;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,56 +15,66 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import dw.editora.entity.Artigo;
 import dw.editora.entity.Autor;
 import dw.editora.service.AutorService;
+import jakarta.validation.Valid;
 
-@CrossOrigin(origins = "*") 
-@RestController 
-@RequestMapping("/api/autores") // Mapeia o recurso na raiz da classe
+@CrossOrigin(origins = "*")
+@RestController
+@RequestMapping("/api/autores")
 public class AutorController {
 
-    // A dependência agora é do Service, não do Repository
     private final AutorService service;
 
     public AutorController(AutorService service) {
         this.service = service;
     }
 
-    @GetMapping("/nome")
-    public ResponseEntity<List<Autor>> getAutoresPorNome(@RequestParam("filtro") String nome) {
-        try {
-            List<Autor> autor = service.listarNomeAutor(nome);
-            
-            if (autores.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-            return ResponseEntity.ok(autores);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    @GetMapping
+    public ResponseEntity<List<Autor>> getAllAutores(
+            @RequestParam(required = false) String nome) {
+        List<Autor> autores;
+        if (nome != null && !nome.isBlank()) {
+            autores = service.listarNomeAutor(nome);
+        } else {
+            autores = service.listarAutores();
         }
+        return ResponseEntity.ok(autores);
+    }
+
+    @GetMapping("/nome")
+    public ResponseEntity<List<Autor>> getAutoresPorNome(
+            @RequestParam("filtro") String nome) {
+        List<Autor> autores = service.listarNomeAutor(nome);
+        return ResponseEntity.ok(autores);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Autor> getAutor(@PathVariable Long id) {
-        // Uso de programação funcional (map) para simplificar o Optional
         return service.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Autor> createAutor(@RequestBody Autor autor) {
-        try {
-            Autor autorSalvo = service.salvar(autor);
-            return ResponseEntity.status(HttpStatus.CREATED).body(autorSalvo);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<Autor> createAutor(@Valid @RequestBody Autor autor) {
+        Autor autorSalvo = service.salvar(autor);
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(autorSalvo.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(autorSalvo);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Autor> updateAutor(@PathVariable Long id, @RequestBody Autor autor) {
+    public ResponseEntity<Autor> updateAutor(
+            @PathVariable Long id,
+            @Valid @RequestBody Autor autor) {
         return service.atualizar(id, autor)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -71,36 +82,22 @@ public class AutorController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAutor(@PathVariable Long id) {
-        try {
-            if (service.deletar(id)) {
-                return ResponseEntity.noContent().build();
-            }
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        if (service.deletar(id)) {
+            return ResponseEntity.noContent().build();
         }
+        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteAllAutores() {
-        try {
-            service.deletarTodos();
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        service.deletarTodos();
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping
-    public ResponseEntity<List<Autor>> getAllAutores(@RequestParam(required = false) String nome){
-        try {
-            List<Autor> autores = service.listarAutores();
-            if (autores.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-            return ResponseEntity.ok(autores);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    @GetMapping("/{id}/artigos")
+    public ResponseEntity<List<Artigo>> getArtigosPorAutor(
+            @PathVariable Long id) {
+        List<Artigo> artigos = service.listarArtigosPorAutor(id);
+        return ResponseEntity.ok(artigos);
     }
 }
