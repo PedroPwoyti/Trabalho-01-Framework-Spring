@@ -33,7 +33,7 @@ Este projeto é distribuído sob a licença MIT. Isso significa que você pode u
 
 Nome: Luis Felipe da Rosa Teixeira
 RA: 25090823
-Nome: 
-RA:
-Nome: 
-RA:
+Nome: Otavio de Quadros Sonnenstrahl
+RA: 25119823
+Nome: Pedro Paulo Woytichoski Neto
+RA: 25068123
